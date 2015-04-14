@@ -1,0 +1,20 @@
+{
+  "name": "volume-meter",
+  "main": "index.js",
+  "version": "0.0.0",
+  "authors": [
+    "Chris Whatley <whatleyc@gmail.com>"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "public/lib",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "recorderjs": "~0.0.0"
+  }
+}
