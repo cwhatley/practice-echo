@@ -1,6 +1,6 @@
 # Practice Echo
 
-I started from a volume-meter demo at
+I cribbed some code from a volume-meter demo at
 https://github.com/cwilso/volume-meter.git and, with my limited
 front-end skills added on a "quiet detector" that triggers record and playback of
 microphone audio input.
