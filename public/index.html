@@ -1,0 +1,20 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Volume Meter Sample</title>
+		<style>
+		</style>
+		<!-- Include the volume meter component -->
+		<script src="lib/recorderjs/recorder.js"></script>
+		<script src="volume-meter.js"></script>
+		<!-- Include the main app logic -->
+		<script src="main.js"></script>
+	</head>
+	<body>
+	  <p>This page will listen to you and play back any sounds you make.</p>
+	  <p>After playback is done, there is a small delay before recording can start again.</p>
+	  <p>Recording will start automatically when the level gets high enough.</p>
+	  <canvas id="meter" width="500" height="50"></canvas>
+	  <p>Recording Status: <span id="recordingStatus"></span></p>
+	</body>
+</html>
