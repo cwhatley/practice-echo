@@ -28,11 +28,13 @@ var WIDTH=500;
 var HEIGHT=50;
 var rafID = null;
 var statusSpan;
+var statusSpanLabel;
 
 window.onload = function() {
     // grab our canvas
 	canvasContext = document.getElementById( "meter" ).getContext("2d");
     statusSpan = document.getElementById("recordingStatus");
+    statusSpanLabel = document.getElementById("recordingStatusLabel");
 	
     // monkeypatch Web Audio
     window.AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -64,6 +66,7 @@ window.onload = function() {
     } catch (e) {
         alert('getUserMedia threw exception :' + e);
     }
+    m.module(document.getElementById("controls"), ctrl);
 };
 
 function didntGetStream() {
@@ -121,6 +124,63 @@ function stopRecording(){
     }
 }
 
+// mithril stuff
+var ctrl = {};
+var volumeIncrement = 0.05;
+
+ctrl.vm = {
+    init: function(){
+        ctrl.vm.delayFrameLength = m.prop(50);
+        ctrl.vm.silenceFramesLength = m.prop(100);
+        ctrl.vm.volumeThreshold = m.prop(0.05);
+        ctrl.vm.volumeUp = function(){
+            var current = ctrl.vm.volumeThreshold();
+            if(current<1){
+                ctrl.vm.volumeThreshold(current - volumeIncrement);
+            }
+        };
+        ctrl.vm.volumeDown = function(){
+            var current = ctrl.vm.volumeThreshold();
+            if(current>0){
+                ctrl.vm.volumeThreshold(current - volumeIncrement);
+            }
+        };
+    }
+};
+ctrl.controller = function(){
+    ctrl.vm.init();
+};
+
+ctrl.view = function(){
+    var value = [];
+    var val = [{
+        label: "Sensitivity",
+        binding: ctrl.vm.volumeThreshold()
+    },{
+        label: "Quiet Period",
+        binding: ctrl.vm.silenceFramesLength()
+    },{
+        label: "Restart Wait",
+        binding: ctrl.vm.delayFrameLength()
+    }].forEach(function(ob){
+        value.push(m("div[class=col-md-4]",[
+            m("div[class=input-group]",[
+			    m("span", {class: "input-group-addon",id: "basic-addon1"}, ob.label),
+			    m("input", {name: "volumeThreshold", type: "text", class: "form-control",value: ob.binding}),
+			    m("span", {class: "input-group-btn"}, [
+				    m("button", {class:"btn btn-default",type: "button"}, "-")
+                ]),
+			    m("span", {class: "input-group-btn"}, [
+				    m("button", {class: "btn btn-default",type: "button"}, "+")
+                ])
+            ])
+        ]));;
+    });
+    return value;
+}
+
+//m.module(document.getElementById("controls"), ctrl);
+
 //var readyToRecord = true;
 var playingBack = false;
 var recording = false;
@@ -137,15 +197,21 @@ var volumeThreshold = 0.05;
 function updateStatusSpan(){
     var status = 'UNKNOWN';
     if(playingBack){
-        status = 'playing back';
+        status = 'music';
     } else if(recording){
-        status = 'recording';
+        status = 'record';
     } else if (delaying){
-        status = 'pausing';
+        status = 'pause';
     } else {
-        status = 'ready';
+        status = 'ok';
     }
-    statusSpan.innerHTML = status;
+    statusSpan.className = 'glyphicon glyphicon-lg glyphicon-' + status;
+    statusSpanLabel.innerHTML = {
+        music: 'Playing Back',
+        record: 'Recording',
+        pause: 'Hold On',
+        ok: 'Listening'
+    }[status];
 }
 
 function drawLoop( time ) {

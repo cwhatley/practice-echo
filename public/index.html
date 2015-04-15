@@ -9,6 +9,7 @@
 
 	  <title>Practice Echo</title>
 	  <!-- Include the volume meter component -->
+	  <script src="//cdnjs.cloudflare.com/ajax/libs/mithril/0.1.34/mithril.min.js"></script>
 	  <script src="lib/recorderjs/recorder.js"></script>
 	  <script src="volume-meter.js"></script>
 	  <!-- Include the main app logic -->
@@ -44,43 +45,7 @@
 			</div>
 		  </div>
 		</div>
-		<div class="row">
-		  <div class="col-md-4">
-			<div class="input-group">
-			  <span class="input-group-addon" id="basic-addon1">Quiet Level</span>
-			  <input type="text" class="form-control" placeholder="0">
-			  <span class="input-group-btn">
-				<button class="btn btn-default" type="button">-</button>
-			  </span>
-			  <span class="input-group-btn">
-				<button class="btn btn-default" type="button">+</button>
-			  </span>
-			</div>
-		  </div>
-		  <div class="col-md-4">
-			<div class="input-group">
-			  <span class="input-group-addon" id="basic-addon1">Quiet Period</span>
-			  <input type="text" class="form-control" placeholder="0">
-			  <span class="input-group-btn">
-				<button class="btn btn-default" type="button">-</button>
-			  </span>
-			  <span class="input-group-btn">
-				<button class="btn btn-default" type="button">+</button>
-			  </span>
-			</div>
-		  </div>
-		  <div class="col-md-4">
-			<div class="input-group">
-			  <span class="input-group-addon" id="basic-addon1">Restart Wait</span>
-			  <input type="text" class="form-control" placeholder="0">
-			  <span class="input-group-btn">
-				<button class="btn btn-default" type="button">-</button>
-			  </span>
-			  <span class="input-group-btn">
-				<button class="btn btn-default" type="button">+</button>
-			  </span>
-			</div>
-		  </div>
+		<div class="row" id="controls">
 		</div>
 		<div class="well">
 		  <p>This page will listen to you and play back any sounds you make.</p>
