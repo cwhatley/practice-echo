@@ -1,20 +1,94 @@
 <!doctype html>
 <html>
 	<head>
-		<title>Volume Meter Sample</title>
-		<style>
-		</style>
-		<!-- Include the volume meter component -->
-		<script src="lib/recorderjs/recorder.js"></script>
-		<script src="volume-meter.js"></script>
-		<!-- Include the main app logic -->
-		<script src="main.js"></script>
+	  <!-- Latest compiled and minified CSS -->
+	  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+
+	  <!-- Optional theme -->
+	  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap-theme.min.css">
+
+	  <title>Practice Echo</title>
+	  <!-- Include the volume meter component -->
+	  <script src="lib/recorderjs/recorder.js"></script>
+	  <script src="volume-meter.js"></script>
+	  <!-- Include the main app logic -->
+	  <script src="main.js"></script>
 	</head>
 	<body>
-	  <p>This page will listen to you and play back any sounds you make.</p>
-	  <p>After playback is done, there is a small delay before recording can start again.</p>
-	  <p>Recording will start automatically when the level gets high enough.</p>
-	  <canvas id="meter" width="500" height="50"></canvas>
-	  <p>Recording Status: <span id="recordingStatus"></span></p>
+	  <div class="container">
+		<h1 class="page-header">
+		  Practice Echo
+		  </h1>
+		<div class="row">
+		  <div class="col-md-4">
+			<div class="panel panel-default">
+			  <div class="panel-heading">
+				<h3 class="panel-title">Recording Status</h3>
+			  </div>
+			  <div class="panel-body">
+				<div class="btn btn-lg">
+				  <span id="recordingStatus" class="glyphicon" aria-hidden="true"></span>
+				  <span id="recordingStatusLabel" ></span>
+				</div>
+			  </div>
+			</div>
+		  </div>
+		  <div class="col-md-8">
+			<div class="panel panel-default">
+			  <div class="panel-heading">
+				<h3 class="panel-title">Audio Level</h3>
+			  </div>
+			  <div class="panel-body">
+				<canvas id="meter" width="500" height="40"></canvas>
+			  </div>
+			</div>
+		  </div>
+		</div>
+		<div class="row">
+		  <div class="col-md-4">
+			<div class="input-group">
+			  <span class="input-group-addon" id="basic-addon1">Quiet Level</span>
+			  <input type="text" class="form-control" placeholder="0">
+			  <span class="input-group-btn">
+				<button class="btn btn-default" type="button">-</button>
+			  </span>
+			  <span class="input-group-btn">
+				<button class="btn btn-default" type="button">+</button>
+			  </span>
+			</div>
+		  </div>
+		  <div class="col-md-4">
+			<div class="input-group">
+			  <span class="input-group-addon" id="basic-addon1">Quiet Period</span>
+			  <input type="text" class="form-control" placeholder="0">
+			  <span class="input-group-btn">
+				<button class="btn btn-default" type="button">-</button>
+			  </span>
+			  <span class="input-group-btn">
+				<button class="btn btn-default" type="button">+</button>
+			  </span>
+			</div>
+		  </div>
+		  <div class="col-md-4">
+			<div class="input-group">
+			  <span class="input-group-addon" id="basic-addon1">Restart Wait</span>
+			  <input type="text" class="form-control" placeholder="0">
+			  <span class="input-group-btn">
+				<button class="btn btn-default" type="button">-</button>
+			  </span>
+			  <span class="input-group-btn">
+				<button class="btn btn-default" type="button">+</button>
+			  </span>
+			</div>
+		  </div>
+		</div>
+		<div class="well">
+		  <p>This page will listen to you and play back any sounds you make.</p>
+		  <p>After playback is done, there is a small delay before recording can start again.</p>
+		  <p>Recording will start automatically when the level gets high enough.</p>
+		</div>
+	  </div>
+	  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+	  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
 	</body>
 </html>
