@@ -1,3 +1,5 @@
+/* global navigator, m, window, document, AudioContext, createAudioMeter, Recorder */
+'use strict';
 /*
 The MIT License (MIT)
 
@@ -27,14 +29,11 @@ var canvasContext = null;
 var WIDTH=500;
 var HEIGHT=50;
 var rafID = null;
-var statusSpan;
-var statusSpanLabel;
 
 window.onload = function() {
+    m.module(document.getElementById('app'), ctrl)
     // grab our canvas
-	canvasContext = document.getElementById( "meter" ).getContext("2d");
-    statusSpan = document.getElementById("recordingStatus");
-    statusSpanLabel = document.getElementById("recordingStatusLabel");
+	canvasContext = document.getElementById( 'meter' ).getContext('2d');
 	
     // monkeypatch Web Audio
     window.AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -52,31 +51,36 @@ window.onload = function() {
 
         // ask for an audio input
         navigator.getUserMedia(
-        {
-            "audio": {
-                "mandatory": {
-                    "googEchoCancellation": "true",
-                    "googAutoGainControl": "false",
-                    "googNoiseSuppression": "false",
-                    "googHighpassFilter": "false"
-                },
-                "optional": []
-            },
-        }, gotStream, didntGetStream);
+            {
+                audio: {
+                    mandatory: {
+                        googEchoCancellation: true,
+                        googAutoGainControl: false,
+                        googNoiseSuppression: false,
+                        googHighpassFilter: false
+                    },
+                    optional: []
+                }
+            }, gotStream, didntGetStream);
     } catch (e) {
-        alert('getUserMedia threw exception :' + e);
+        didntGetStream();
     }
-    m.module(document.getElementById("controls"), ctrl);
 };
 
 function didntGetStream() {
-    alert('Stream generation failed.');
+    m.startComputation();
+    ctrl.vm.alertText('Couldn\'t get stream! Maybe you are not on Chrome or Firefox. Safari doesn\'t have the audio support. :( ');
+    ctrl.vm.alertType('danger');
+    m.endComputation();
 }
 
 var mediaStreamSource = null;
 var rec;
 
 function gotStream(stream) {
+    ctrl.vm.alertText(null);
+    ctrl.vm.alertType('primary');
+
     // Create an AudioNode from the stream.
     mediaStreamSource = audioContext.createMediaStreamSource(stream);
 
@@ -88,20 +92,20 @@ function gotStream(stream) {
         workerPath: '/lib/recorderjs/recorderWorker.js'
     });
 
-    // kick off the visual updating
-//    startRecording();
     drawLoop();
 }
 
-function startRecording(){
-    console.log('record.start', silentFrames);
+var recordStart = 0;
+function startRecording(time){
+    console.log('record.start', time);
     recording = true;
+    recordStart = time;
     rec.record();
 }
 
-function stopRecording(){
-    console.log('record.stop', silentFrames);
-//    readyToRecord = false;
+function stopRecording(time){
+    console.log('record.stop', time - recordStart);
+
     if(rec){
         rec.stop();
         recording = false;
@@ -113,7 +117,6 @@ function stopRecording(){
             source.connect(audioContext.destination);
             source.onended = function(ev){
                 console.log('playback done', silentFrames);
-//                readyToRecord = true;
                 playingBack = false;
             };
             console.log('playback start', silentFrames);
@@ -130,20 +133,51 @@ var volumeIncrement = 0.05;
 
 ctrl.vm = {
     init: function(){
-        ctrl.vm.delayFrameLength = m.prop(50);
-        ctrl.vm.silenceFramesLength = m.prop(100);
+        ctrl.vm.delayFrameLength = m.prop(500);
+        ctrl.vm.silenceFramesLength = m.prop(500);
         ctrl.vm.volumeThreshold = m.prop(0.05);
-        ctrl.vm.volumeUp = function(){
-            var current = ctrl.vm.volumeThreshold();
-            if(current<1){
-                ctrl.vm.volumeThreshold(current - volumeIncrement);
-            }
+        ctrl.vm.recordingStatusGlyph = m.prop('glyphicon');
+        ctrl.vm.recordingStatus = m.prop('Starting');
+        ctrl.vm.recordingPanelBackground = m.prop('');
+        ctrl.vm.alertText = m.prop('You have to allow access to the microphone for this to work');
+        ctrl.vm.alertType = m.prop('warning');
+        ctrl.vm.controlSpec = [{
+            name: 'sens',
+            label: 'Sensitivity',
+            binding: ctrl.vm.volumeThreshold,
+            quantum: 0.05,
+            min: 0.00,
+            max: 1
+        },{
+            name: 'quiet',
+            label: 'Quiet Period (ms)',
+            binding: ctrl.vm.silenceFramesLength,
+            quantum: 20,
+            min: 10,
+            max: 1000
+        },{
+            name: 'restart',
+            label: 'Restart Wait (ms)',
+            binding: ctrl.vm.delayFrameLength,
+            quantum: 20,
+            min: 10,
+            max: 1000
+        }];
+        ctrl.vm.incrementFun = function(binding, quantum, max){
+            return function(){
+                var current = binding();
+                if((typeof max !== 'undefined') || current<max){
+                    binding(Number(Number(current + quantum).toFixed(2)));
+                }
+            };
         };
-        ctrl.vm.volumeDown = function(){
-            var current = ctrl.vm.volumeThreshold();
-            if(current>0){
-                ctrl.vm.volumeThreshold(current - volumeIncrement);
-            }
+        ctrl.vm.decrementFun = function(binding, quantum, min){
+            return function(){
+                var current = binding();
+                if((typeof min !== 'undefined') || current>min){
+                    binding(Number(Number(current - quantum).toFixed(2)));
+                }
+            };
         };
     }
 };
@@ -152,34 +186,101 @@ ctrl.controller = function(){
 };
 
 ctrl.view = function(){
-    var value = [];
-    var val = [{
-        label: "Sensitivity",
-        binding: ctrl.vm.volumeThreshold()
-    },{
-        label: "Quiet Period",
-        binding: ctrl.vm.silenceFramesLength()
-    },{
-        label: "Restart Wait",
-        binding: ctrl.vm.delayFrameLength()
-    }].forEach(function(ob){
-        value.push(m("div[class=col-md-4]",[
-            m("div[class=input-group]",[
-			    m("span", {class: "input-group-addon",id: "basic-addon1"}, ob.label),
-			    m("input", {name: "volumeThreshold", type: "text", class: "form-control",value: ob.binding}),
-			    m("span", {class: "input-group-btn"}, [
-				    m("button", {class:"btn btn-default",type: "button"}, "-")
-                ]),
-			    m("span", {class: "input-group-btn"}, [
-				    m("button", {class: "btn btn-default",type: "button"}, "+")
+    return m('div', {class: 'container'}, [
+        m('h1', {class: 'page-header'}, 'Practice Echo'),
+        m('div', {class: 'row ' + (ctrl.vm.alertText() ? 'show' : 'hidden')}, [
+            m('div', {class: 'col-md-12'}, [
+                m('div', {class: 'alert alert-' + ctrl.vm.alertType()}, ctrl.vm.alertText())
+            ])
+        ]),
+        m('div', {class: 'row'}, [
+            m('div', {class: 'col-md-4'}, [
+                ctrl.view.status(ctrl.vm.recordingStatusGlyph, ctrl.vm.recordingStatus)
+            ]),
+            m('div', {class: 'col-md-8'}, [
+                ctrl.view.canvas()
+            ])
+        ]),
+        m('div', {class: 'row'}, [                
+            ctrl.view.controls()
+        ]),
+        m('div', {class: 'row'}, [
+            m('div', {class: 'col-md-12'}, [
+                m('div', {class: 'well'}, [
+                    m('p','This page will listen to you and play back any sounds you make.'),
+                    m('p','After playback is done, there is a small delay before recording can start again.'),
+                    m('p','Recording will start automatically when the level gets high enough.')
                 ])
             ])
-        ]));;
-    });
-    return value;
-}
+        ]),
+        m('div', {class: 'row'}, [
+            m('div', {class: 'col-md-12'}, [
+                m('p',m.trust('Copyright &copy; 2015 Chris Whatley - '), [
+                    m('a', {href: 'https://github.com/cwhatley/practice-echo'}, 'github')
+                ])
+            ])
+        ])
+    ]);
+};
 
-//m.module(document.getElementById("controls"), ctrl);
+ctrl.view.canvas = function(){
+    return m('div', {class: 'panel panel-default'}, [
+        m('div', {class: 'panel-heading'}, [
+            m('h3', {class: 'panel-title'}, 'Audio Level')
+        ]),
+        m('div', {class: 'panel-body'}, [
+            m('canvas', {id: 'meter', width:500, height:'40'})
+        ])
+    ]);
+};
+
+ctrl.view.status = function(){
+    return m('div', {class: 'panel panel-default'}, [
+        m('div', {class: 'panel-heading'}, [
+            m('h3', {class: 'panel-title'}, 'Recording Status')
+        ]),
+        m('div', {class: ['panel-body', ctrl.vm.recordingPanelBackground()].join(' ') }, [
+            m('div', {class: 'btn btn-lg'}, [
+                m('span', {id: 'recordingStatus', class: ctrl.vm.recordingStatusGlyph() }, ' '),
+                m('span', ctrl.vm.recordingStatus())
+            ])
+        ])
+    ]);
+};
+
+ctrl.view.controls = function(){
+    var value = [];
+    ctrl.vm.controlSpec.forEach(function(ob){
+        value.push(m('div[class=col-md-4]',[
+            m('div', {class: 'input-group'},[
+			    m('label', {class: 'input-group-addon',id: 'basic-addon1', for: ob.name}, ob.label),
+			    m('input', {name: ob.name, oninput: m.withAttr('value', ob.binding), type: 'text', class: 'form-control',value: ob.binding()}),
+			    m('span', {class: 'input-group-btn'}, [
+				    m('button', {class:'btn btn-default',type: 'button', onclick: ctrl.vm.decrementFun(ob.binding, ob.quantum, ob.min)}, '-')
+                ]),
+			    m('span', {class: 'input-group-btn'}, [
+				    m('button', {class: 'btn btn-default',type: 'button', onclick: ctrl.vm.incrementFun(ob.binding, ob.quantum, ob.max)}, '+')
+                ])
+            ])
+        ]));
+    });
+    return m('div', {class: 'col-md-12'},[
+        m('div', {class: 'panel panel-default'}, [
+            m('div', {class: 'panel-heading'}, [
+                m('h3', {class: 'panel-title'}, 'Controls')
+            ]),
+            m('div', {class: 'panel-body' }, [
+                m('form', {class: 'form-inline'}, [
+                    m('div', {class: 'form-group'}, [
+                        value
+                    ])
+                ])
+            ])
+        ])
+    ]);
+};
+
+//m.module(document.getElementById('controls'), ctrl);
 
 //var readyToRecord = true;
 var playingBack = false;
@@ -189,12 +290,8 @@ var startDelayFrameCount = 0;
 var delaying = false;
 var isSilence = false;
 
-var delayFrameLength = 50;
-var silenceFramesLength = 100;
-var volumeThreshold = 0.05;
-
-
 function updateStatusSpan(){
+    m.startComputation();
     var status = 'UNKNOWN';
     if(playingBack){
         status = 'music';
@@ -205,41 +302,66 @@ function updateStatusSpan(){
     } else {
         status = 'ok';
     }
-    statusSpan.className = 'glyphicon glyphicon-lg glyphicon-' + status;
-    statusSpanLabel.innerHTML = {
+    ctrl.vm.recordingStatusGlyph('glyphicon glyphicon-lg glyphicon-' + status);
+    ctrl.vm.recordingStatus({
         music: 'Playing Back',
         record: 'Recording',
         pause: 'Hold On',
         ok: 'Listening'
-    }[status];
+    }[status]);
+    ctrl.vm.recordingPanelBackground({
+        music: 'bg-primary',
+        record: 'bg-danger',
+        pause: 'bg-warning',
+        ok: 'bg-success'
+    }[status]);
+    m.endComputation();
+}
+
+var lastDraw;
+
+function calcMillisecondsSinceLastDraw(time){
+    var val = 0;
+    if((typeof time) !== 'undefined'){
+        if((typeof lastDraw) === 'undefined'){
+            lastDraw = time;
+        } else {
+            val = time - lastDraw;
+            lastDraw = time;
+        }
+    }
+    return val;
 }
 
 function drawLoop( time ) {
-    var silentNow = (meter.volume < volumeThreshold);
+    var millisecondsSinceLastDraw = calcMillisecondsSinceLastDraw(time);
+
+    var silentNow = (meter.volume < ctrl.vm.volumeThreshold());
     if(silentNow){
-        silentFrames++;
+        silentFrames += millisecondsSinceLastDraw;
     } else {
         silentFrames = 0;
     }
 
-    isSilence = (silentFrames > silenceFramesLength);
+    isSilence = (silentFrames > ctrl.vm.silenceFramesLength());
 
     if(!playingBack){
-        delaying = (delayFrameLength > startDelayFrameCount++);
+        delaying = (ctrl.vm.delayFrameLength() > startDelayFrameCount);
+        startDelayFrameCount += millisecondsSinceLastDraw;
         if(!delaying){
             //console.log('delay over', isSilence);
             if(isSilence){
                 if(recording){
-                    stopRecording();
+                    stopRecording(time);
                     startDelayFrameCount = 0;
                 }
             } else {
                 if(!recording){
-                    startRecording();
+                    startRecording(time);
                 }
             }
         } else {
-            silentFrames = 201;
+            silentFrames = ctrl.vm.silenceFramesLength()+1;
         }
     } else {
         silentFrames = 0;
@@ -251,9 +373,9 @@ function drawLoop( time ) {
 
     // check if we're currently clipping
     if (meter.checkClipping())
-        canvasContext.fillStyle = "red";
+        canvasContext.fillStyle = 'red';
     else
-        canvasContext.fillStyle = "green";
+        canvasContext.fillStyle = 'green';
 
     // draw a bar based on the current volume
     canvasContext.fillRect(0, 0, meter.volume*WIDTH*1.4, HEIGHT);
