@@ -207,9 +207,10 @@ ctrl.view = function(){
         m('div', {class: 'row'}, [
             m('div', {class: 'col-md-12'}, [
                 m('div', {class: 'well'}, [
-                    m('p','This page will listen to you and play back any sounds you make.'),
-                    m('p','After playback is done, there is a small delay before recording can start again.'),
-                    m('p','Recording will start automatically when the level gets high enough.')
+                    m('p','This page will endlessly listen to you and play back any sounds you make until you pause and are silent for the duration of the quiet period setting.'),
+                    m('p','After playback is done, there is a small delay before recording can start again (restart wait).'),
+                    m('p','Recording will start automatically when the level gets high enough.'),
+                    m('p','You may need to fiddle with your computer\'s audio input levels to get the right sensitivity for your sounds and the ambient noise around you.')
                 ])
             ])
         ]),
