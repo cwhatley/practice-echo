@@ -54,7 +54,7 @@ window.onload = function() {
             {
                 audio: {
                     mandatory: {
-                        googEchoCancellation: true,
+                        googEchoCancellation: false,
                         googAutoGainControl: false,
                         googNoiseSuppression: false,
                         googHighpassFilter: false
@@ -111,7 +111,7 @@ function stopRecording(time){
         recording = false;
         rec.getBuffer(function(buffers){
             var source = audioContext.createBufferSource();
-            source.buffer = audioContext.createBuffer(1, buffers[0].length, 44100);
+            source.buffer = audioContext.createBuffer(1, buffers[0].length, audioContext.sampleRate);
             source.buffer.getChannelData(0).set(buffers[0]);
             source.buffer.getChannelData(0).set(buffers[1]);
             source.connect(audioContext.destination);
