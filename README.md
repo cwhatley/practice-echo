@@ -10,6 +10,6 @@ I?" until you get tired of it.
 The main feature is a "quiet detector" that triggers the start and stop of the recording via the
 microphone input.
 
-Try it (in Chrome or FFOX) at http://practice-echo.herokuapp.com 
+Try it (in Chrome or FFOX) at https://practice-echo.herokuapp.com 
 
 Thanks to https://github.com/cwilso/volume-meter.git for the volume meter example.
