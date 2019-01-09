@@ -26,9 +26,17 @@ SOFTWARE.
 var audioContext = null;
 var meter = null;
 var canvasContext = null;
-var WIDTH=500;
-var HEIGHT=50;
 var rafID = null;
+var ctrl = {};
+var volumeIncrement = 0.05;
+var mediaStreamSource = null;
+var rec;
+var playingBack = false;
+var recording = false;
+var silentFrames = 0;
+var startDelayFrameCount = 0;
+var delaying = false;
+var isSilence = false;
 
 window.onload = function() {
     m.module(document.getElementById('app'), ctrl)
@@ -61,23 +69,20 @@ window.onload = function() {
                     },
                     optional: []
                 }
-            }, gotStream, didntGetStream);
+            }, ctrl.gotStream, ctrl.didntGetStream);
     } catch (e) {
-        didntGetStream();
+        ctrl.didntGetStream();
     }
 };
 
-function didntGetStream() {
+ctrl.didntGetStream = function() {
     m.startComputation();
     ctrl.vm.alertText('Couldn\'t get stream! Maybe you are not on Chrome or Firefox. Safari doesn\'t have the audio support. :( ');
     ctrl.vm.alertType('danger');
     m.endComputation();
-}
+};
 
-var mediaStreamSource = null;
-var rec;
-
-function gotStream(stream) {
+ctrl.gotStream = function(stream) {
     ctrl.vm.alertText(null);
     ctrl.vm.alertType('primary');
 
@@ -93,7 +98,7 @@ function gotStream(stream) {
     });
 
     drawLoop();
-}
+};
 
 var recordStart = 0;
 function startRecording(time){
@@ -110,10 +115,11 @@ function stopRecording(time){
         rec.stop();
         recording = false;
         rec.getBuffer(function(buffers){
+            console.log('buffers', buffers.length);
             var source = audioContext.createBufferSource();
-            source.buffer = audioContext.createBuffer(1, buffers[0].length, audioContext.sampleRate);
+            source.buffer = audioContext.createBuffer(2, buffers[0].length, audioContext.sampleRate);
             source.buffer.getChannelData(0).set(buffers[0]);
-            source.buffer.getChannelData(0).set(buffers[1]);
+            source.buffer.getChannelData(1).set(buffers[1]);
             source.connect(audioContext.destination);
             source.onended = function(ev){
                 console.log('playback done', silentFrames);
@@ -127,12 +133,8 @@ function stopRecording(time){
     }
 }
 
-// mithril stuff
-var ctrl = {};
-var volumeIncrement = 0.05;
-
 ctrl.vm = {
-    init: function(){
+    init: function() {
         ctrl.vm.delayFrameLength = m.prop(500);
         ctrl.vm.silenceFramesLength = m.prop(500);
         ctrl.vm.volumeThreshold = m.prop(0.05);
@@ -143,7 +145,7 @@ ctrl.vm = {
         ctrl.vm.alertType = m.prop('warning');
         ctrl.vm.controlSpec = [{
             name: 'sens',
-            label: 'Sensitivity',
+            label: 'Trigger Level',
             binding: ctrl.vm.volumeThreshold,
             quantum: 0.05,
             min: 0.00,
@@ -230,7 +232,7 @@ ctrl.view.canvas = function(){
             m('h3', {class: 'panel-title'}, 'Audio Level')
         ]),
         m('div', {class: 'panel-body'}, [
-            m('canvas', {id: 'meter', width:500, height:'40'})
+            m('canvas', {id: 'meter', width:'600', height:'50'})
         ])
     ]);
 };
@@ -281,16 +283,6 @@ ctrl.view.controls = function(){
     ]);
 };
 
-//m.module(document.getElementById('controls'), ctrl);
-
-//var readyToRecord = true;
-var playingBack = false;
-var recording = false;
-var silentFrames = 0;
-var startDelayFrameCount = 0;
-var delaying = false;
-var isSilence = false;
-
 function updateStatusSpan(){
     m.startComputation();
     var status = 'UNKNOWN';
@@ -335,7 +327,8 @@ function calcMillisecondsSinceLastDraw(time){
 }
 
 function drawLoop( time ) {
-    var millisecondsSinceLastDraw = calcMillisecondsSinceLastDraw(time);
+    var now = Date.now();
+    var millisecondsSinceLastDraw = calcMillisecondsSinceLastDraw(now);
 
     var silentNow = (meter.volume < ctrl.vm.volumeThreshold());
     if(silentNow){
@@ -353,12 +346,12 @@ function drawLoop( time ) {
             //console.log('delay over', isSilence);
             if(isSilence){
                 if(recording){
-                    stopRecording(time);
+                    stopRecording(now);
                     startDelayFrameCount = 0;
                 }
             } else {
                 if(!recording){
-                    startRecording(time);
+                    startRecording(now);
                 }
             }
         } else {
@@ -370,7 +363,12 @@ function drawLoop( time ) {
     updateStatusSpan();
     
     // clear the background
+    var WIDTH = canvasContext.canvas.width;
+    var HEIGHT = canvasContext.canvas.height;
     canvasContext.clearRect(0,0,WIDTH,HEIGHT);
+    canvasContext.lineWidth = 0.5;
+    canvasContext.strokeRect(0,0,WIDTH,HEIGHT);
+
 
     // check if we're currently clipping
     if (meter.checkClipping())
@@ -378,9 +376,22 @@ function drawLoop( time ) {
     else
         canvasContext.fillStyle = 'green';
 
+    var widthFactor = 1.4
+    
     // draw a bar based on the current volume
-    canvasContext.fillRect(0, 0, meter.volume*WIDTH*1.4, HEIGHT);
-
+    canvasContext.fillRect(0, 0, meter.volume*WIDTH*widthFactor, HEIGHT-14);
+    canvasContext.beginPath();
+    var thresholdX = ctrl.vm.volumeThreshold() * WIDTH * widthFactor;
+    var clipLevel = meter.clipLevel * WIDTH * widthFactor;
+    var max = WIDTH * widthFactor;
+    canvasContext.moveTo(thresholdX, 0);
+    canvasContext.lineTo(thresholdX, HEIGHT-14);
+    canvasContext.lineWidth = 1;
+//    canvasContext.strokeStyle = '#00ff00';
+    canvasContext.stroke();
+    canvasContext.font = '12px sans-serif';
+    canvasContext.fillStyle='black';
+    canvasContext.fillText('Trigger Level', thresholdX - 4, HEIGHT - 4);
     // set up the next visual callback
     rafID = window.requestAnimationFrame( drawLoop );
 }
